@@ -210,19 +210,16 @@ $('#enterSales').on('click', function(){
 					WarnEmptyFields();
 				} else {
 					if(e.target.id == "btntolist"){
-						if(uid != ''){
-							sale.saleID = uid/1;
-							try {
-								TempSalesList.forEach(i => {
-									if(i.saleID = uid){
-										TempSalesList.splice(i, 1);
-									}
-								});
-							} catch (error) {
-								
+							if(uid != ''){
+								sale.saleID = Number(uid);
+								try {
+									const idx = TempSalesList.findIndex(t => Number(t.saleID) === Number(uid));
+									if (idx !== -1) TempSalesList.splice(idx, 1);
+								} catch (error) {
+									console.error(error);
+								}
+								$('#tid' + uid).remove();
 							}
-							$('#tid' + uid).remove()
-						}
 						var trItem = `<tr class="Ldata newSR" id="tid` + sale.saleID + `">
 								<td class="Ldata1" id="tID">` + sale.saleID + `</td>
 								<td class="Ldata2 tName">` + sale.itemName + `</td>
@@ -240,10 +237,10 @@ $('#enterSales').on('click', function(){
 							$('#' + did).remove();
 							var i = 0;
 							TempSalesList.forEach(element => {
-								if (element.saleID == did.substring(3)) {
-									TempSalesList.splice(i, 1);
-									return;
-								}
+												if (Number(element.saleID) === Number(did.substring(3))) {
+													TempSalesList.splice(i, 1);
+													return;
+												}
 								i += 1;
 							});
 						});
@@ -252,9 +249,9 @@ $('#enterSales').on('click', function(){
 							if (e.target.className != "itDel"){
 								uid = e.target.parentElement.id.substring(3);
 								TempSalesList.forEach(element => {
-									if (element.saleID != uid) {
-										return;
-									}
+											if (Number(element.saleID) !== Number(uid)) {
+												return;
+											}
 									_ = $('#itname').val(element.itemName);
 									_ = $('#it_qty').val(element.quantity);
 									_ = $('#itamount').val(element.amount);
@@ -410,23 +407,20 @@ function OpenAddModal() {
 				item.item_cat = TrimSpace($('#it-cat').val());
 				item.item_img = TrimSpace($('#it-img').val());
 				
-				if (item.itemName == '' || item.item_type == '' || item.unit_price == '' || item.in_stock == '' || item.item_img == '' || item.item_img == '') {
+				if (item.itemName == '' || item.item_type == '' || item.unit_price == '' || item.in_stock == '' || item.item_img == '') {
 					WarnEmptyFields();
 					return;
 				}
 				//$("#itemtolist").on('click', function(){
 					if (uid != '') {
-						item.itemID = uid/1;
+						item.itemID = Number(uid);
 						try {
-							TempItemList.forEach(i => {
-								if(i.itemID = uid){
-									TempItemList.splice(i, 1);
-								}
-							})
+							const idx = TempItemList.findIndex(t => Number(t.itemID) === Number(uid));
+							if (idx !== -1) TempItemList.splice(idx, 1);
 						} catch (error) {
-							
+							console.error(error);
 						}
-						$('#tid' + uid).remove()
+						$('#tid' + uid).remove();
 					}
 					
 					var trItem = `<tr class="Ldata newTR" id="tid` + item.itemID + `">
@@ -563,23 +557,25 @@ $('#category').on('click', function() {
 			});
 
 			function OpenCatDetail(category) {
-				alert()
 				$('.catModalDetailCover').fadeIn(100);
 				$('.catModalDetailCover').css({'display': 'flex'});
 				$('#c_name').text(category.name);
-				$('#noP').text(category.noP);
+				// HTML uses id="nop" for number of products, ensure we match that id
+				$('#nop').text(category.noP);
 				$('.catDetailBox').attr('id', category.categoryId);
-				$('#btnToDeleteCat').click(function(){
+				// remove previous handlers before attaching to avoid duplicates
+				$('#btnToDeleteCat').off('click').on('click', function(){
 					DeleteCat(category.categoryId);
 					CloseCatDetail();
-				})
-				$('#c_name').keyup(function(e){
+				});
+				// when editing the name, call EditCat with the known category id
+				$('#c_name').off('keyup').on('keyup', function(e){
 					e.preventDefault();
 					if(e.which === 13){
 						$('#c_name').blur();
 						return;
 					}
-					EditCat(e.target.parentElement.parentElement.id);
+					EditCat(category.categoryId);
 				});
 			}
 

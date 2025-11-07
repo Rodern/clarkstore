@@ -1,29 +1,29 @@
 class Route {
     constructor(name, path, handler){
-        this.name = name;
-        this.path = path;
-        this.handler = handler;
+        this._name = name;
+        this._path = path;
+        this._handler = handler;
     }
     
     get name() {
-        return this.name;
+        return this._name;
     }
     set name(name) {
-        this.name = name;
+        this._name = name;
     }
 
     get path() {
-        this.path;
+        return this._path;
     }
     set path(path) {
-        this.path = path;
+        this._path = path;
     }
 
     get handler() {
-        this.handler;
+        return this._handler;
     }
     set handler(handler) {
-        this.handler = handler;
+        this._handler = handler;
     }
 }
 
@@ -35,8 +35,12 @@ class Router {
     }
 
     add(route) {
+        // accept either plain object or Route instance
+        if (!(route instanceof Route) && route && typeof route === 'object') {
+            route = new Route(route.name, route.path, route.handler);
+        }
         this.routes.push(route);
-        return this
+        return this;
     }
 
     navigate(route) {
@@ -45,18 +49,34 @@ class Router {
     }
 
     match(route) {
-        let matched = false
-        this.routes.forEach(iroute => {
-                //alert(route)
-            if(iroute.path == route) {
-                iroute.handler();
-
-                this.location(route)
-                matched = true
-                //alert(route)
-                return
+        let matched = false;
+        // support exact matches and simple parameterized routes like /users/:id
+        for (let iroute of this.routes) {
+            if (!iroute || !iroute.path) continue;
+            // exact match
+            if (iroute.path === route) {
+                if (typeof iroute.handler === 'function') iroute.handler();
+                this.location(route);
+                matched = true;
+                break;
             }
-        });
+
+            // parameterized match: convert /path/:param to regex
+            const paramNames = [];
+            const regexPath = iroute.path.replace(/:([^/]+)/g, (_, name) => { paramNames.push(name); return '([^/]+)'; }) + '(?:\/|$)';
+            const m = route.match(new RegExp('^' + regexPath));
+            if (m) {
+                const params = {};
+                paramNames.forEach((n, i) => params[n] = m[i+1]);
+                if (typeof iroute.handler === 'function') iroute.handler(params);
+                if (typeof document !== 'undefined' && document.querySelector('title')) {
+                    try { document.querySelector('title').innerText = `${AppName} | ${iroute.name}` } catch(e) {}
+                }
+                this.location(route);
+                matched = true;
+                break;
+            }
+        }
         /* for (let i = 0; i < this.routes.length; i++) {
             let paramNames = [];
             let regexPath = this.routes[i].path.replace(/([:*])(\w+)/g, (full, colon, name) => {
@@ -84,8 +104,8 @@ class Router {
             
         } */
         //alert(route)
-        if(route == '/' || route == '' || route == null) return
-        if(matched == true) return
+        if(route === '/' || route === '' || route === null) return;
+        if(matched === true) return;
         popUpBox('error', 'Invalid: Route not found!', 'acceptInvalid', 'none', () =>{
             clearPopUpBox();
             if(GetKeyValue(IsLoggedInKeyName) == 'true') {
